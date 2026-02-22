@@ -1,0 +1,273 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - 'copilot/**'
+  workflow_dispatch:
+    inputs:
+      create-release:
+        description: 'Create a GitHub Release with the built artifacts'
+        type: boolean
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ver: ''
+  ver_pure: ''
+
+jobs:
+  # ──────────────────────────── Linux ────────────────────────────
+  build_linux:
+    name: Build Linux (Ubuntu 24.04)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          lfs: 'true'
+
+      - name: Get version
+        id: ver
+        run: |
+          ver_pure=$(grep 'set(SoftFever_VERSION' version.inc | cut -d '"' -f2)
+          ref="${{ github.ref_name }}"
+          safe_ref="${ref//\//-}"
+          ver="dev-${safe_ref}-$(date +'%Y%m%d')"
+          echo "ver=$ver" >> $GITHUB_ENV
+          echo "ver_pure=$ver_pure" >> $GITHUB_ENV
+          echo "ver=$ver" >> $GITHUB_OUTPUT
+
+      - name: Install system dependencies
+        uses: ./.github/actions/apt-install-deps
+
+      - name: Cache deps
+        id: cache-deps
+        uses: actions/cache@v5
+        with:
+          path: ${{ github.workspace }}/deps/build/destdir
+          key: ubuntu-24.04-orcaslicer-deps-${{ hashFiles('deps/**') }}
+
+      - name: Build dependencies (if not cached)
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ${{ github.workspace }}/deps/build/destdir
+          ./build_linux.sh -dr
+
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.28.0"
+
+      - name: Build OrcaSlicer + AppImage
+        run: |
+          ./build_linux.sh -istr
+          mv -n ./build/OrcaSlicer_Linux_V${{ env.ver_pure }}.AppImage \
+                ./build/OrcaSlicer_Linux_${{ env.ver }}.AppImage
+          chmod +x ./build/OrcaSlicer_Linux_${{ env.ver }}.AppImage
+
+      - name: Upload Linux AppImage
+        uses: actions/upload-artifact@v6
+        with:
+          name: OrcaSlicer-Linux-${{ env.ver }}
+          path: ./build/OrcaSlicer_Linux_${{ env.ver }}.AppImage
+          if-no-files-found: error
+
+  # ──────────────────────────── Windows ────────────────────────────
+  build_windows:
+    name: Build Windows
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          lfs: 'true'
+
+      - name: Get version
+        id: ver
+        shell: pwsh
+        run: |
+          $ver_pure_match = Select-String -Path version.inc -Pattern 'set\(SoftFever_VERSION "(.*?)"\)'
+          $ver_pure = $ver_pure_match.Matches[0].Groups[1].Value
+          $ref = "${{ github.ref_name }}" -replace '/', '-'
+          $date = Get-Date -Format 'yyyyMMdd'
+          $ver = "dev-$ref-$date"
+          echo "ver=$ver" | Out-File -Append $env:GITHUB_ENV
+          echo "ver_pure=$ver_pure" | Out-File -Append $env:GITHUB_ENV
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.28.0"
+
+      - name: Install Strawberry Perl
+        run: choco install strawberryperl
+
+      - name: Install NSIS
+        run: choco install nsis
+
+      - name: Cache deps
+        id: cache-deps
+        uses: actions/cache@v5
+        with:
+          path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep
+          key: windows-latest-orcaslicer-deps-${{ hashFiles('deps/**') }}
+
+      - name: Build dependencies (if not cached)
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        env:
+          WindowsSdkDir: 'C:\Program Files (x86)\Windows Kits\10\'
+          WindowsSDKVersion: '10.0.26100.0\'
+        run: |
+          .\build_release_vs.bat deps
+          .\build_release_vs.bat pack
+
+      - name: Build OrcaSlicer
+        env:
+          WindowsSdkDir: 'C:\Program Files (x86)\Windows Kits\10\'
+          WindowsSDKVersion: '10.0.26100.0\'
+        run: .\build_release_vs.bat slicer
+
+      - name: Create NSIS installer
+        working-directory: ${{ github.workspace }}/build
+        run: cpack -G NSIS
+
+      - name: Pack portable zip
+        working-directory: ${{ github.workspace }}/build
+        shell: cmd
+        run: |
+          "C:/Program Files/7-Zip/7z.exe" a -tzip OrcaSlicer_Windows_${{ env.ver }}_portable.zip OrcaSlicer
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v6
+        with:
+          name: OrcaSlicer-Windows-Installer-${{ env.ver }}
+          path: ${{ github.workspace }}/build/OrcaSlicer*.exe
+          if-no-files-found: error
+
+      - name: Upload Windows portable zip
+        uses: actions/upload-artifact@v6
+        with:
+          name: OrcaSlicer-Windows-Portable-${{ env.ver }}
+          path: ${{ github.workspace }}/build/OrcaSlicer_Windows_${{ env.ver }}_portable.zip
+          if-no-files-found: error
+
+  # ──────────────────────────── macOS ────────────────────────────
+  build_macos:
+    name: Build macOS (arm64)
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          lfs: 'true'
+
+      - name: Get version
+        id: ver
+        run: |
+          ver_pure=$(grep 'set(SoftFever_VERSION' version.inc | cut -d '"' -f2)
+          ref="${{ github.ref_name }}"
+          safe_ref="${ref//\//-}"
+          ver="dev-${safe_ref}-$(date +'%Y%m%d')"
+          echo "ver=$ver" >> $GITHUB_ENV
+          echo "ver_pure=$ver_pure" >> $GITHUB_ENV
+
+      - name: Install tools
+        run: brew install libtool automake texinfo
+
+      - name: Cache deps
+        id: cache-deps
+        uses: actions/cache@v5
+        with:
+          path: ${{ github.workspace }}/deps/build
+          key: macos-14-arm64-orcaslicer-deps-${{ hashFiles('deps/**') }}
+
+      - name: Build dependencies (if not cached)
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ${{ github.workspace }}/deps/build
+          ./build_release_macos.sh -dx -1 -a universal -t 10.15
+
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.28.0"
+
+      - name: Build OrcaSlicer
+        run: ./build_release_macos.sh -s -n -x -1 -a universal -t 10.15
+
+      - name: Upload macOS DMG
+        uses: actions/upload-artifact@v6
+        with:
+          name: OrcaSlicer-macOS-${{ env.ver }}
+          path: ${{ github.workspace }}/build/OrcaSlicer*.dmg
+          if-no-files-found: error
+
+  # ──────────────────────────── Create Release ────────────────────────────
+  create_release:
+    name: Create GitHub Release
+    needs: [build_linux, build_windows, build_macos]
+    runs-on: ubuntu-24.04
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' && inputs.create-release || github.event_name == 'push') }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Get version
+        run: |
+          ver_pure=$(grep 'set(SoftFever_VERSION' version.inc | cut -d '"' -f2)
+          ref="${{ github.ref_name }}"
+          safe_ref="${ref//\//-}"
+          ver="dev-${safe_ref}-$(date +'%Y%m%d')"
+          echo "ver=$ver" >> $GITHUB_ENV
+          echo "ver_pure=$ver_pure" >> $GITHUB_ENV
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: release-artifacts
+
+      - name: List artifacts
+        run: find release-artifacts -type f | sort
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.ver }}
+          name: "OrcaSlicer ${{ env.ver_pure }} with Resin-like Supports"
+          body: |
+            ## OrcaSlicer with Resin-like Supports
+
+            This release includes the **Resin-like (auto)** support type — thin-pillar, point-contact supports inspired by SLA/resin printers for easy removal on FDM printers.
+
+            ### Downloads
+            | Platform | File |
+            |---|---|
+            | Windows | `OrcaSlicer*.exe` (installer) or `*_portable.zip` |
+            | Linux | `OrcaSlicer_Linux_*.AppImage` |
+            | macOS | `OrcaSlicer*.dmg` |
+
+            ### Changes
+            - New **Resin-like (auto)** entry in the Support Type dropdown
+            - Uses the organic tree-support kernel with SLA-inspired parameters:
+              - Pin-head contact tips (= 1 extrusion line wide)
+              - Thin branch pillars (≤ 2× line width)
+              - 30% tip density for reliable overhang coverage
+              - 1-layer interface for minimal contact area
+          draft: false
+          prerelease: true
+          files: |
+            release-artifacts/**/*.AppImage
+            release-artifacts/**/*.exe
+            release-artifacts/**/*.zip
+            release-artifacts/**/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
