@@ -91,6 +91,25 @@ struct TreeSupportMeshGroupSettings {
         this->support_tree_top_rate       = config.tree_support_top_rate.value; // percent
     //    this->support_tree_tip_diameter = this->support_line_width;
         this->support_tree_tip_diameter = std::clamp(scaled<coord_t>(config.tree_support_tip_diameter.value), (coord_t)0, this->support_tree_branch_diameter);
+
+        // For resin-like style, use very thin contact tips and narrow branches (SLA-inspired).
+        if (config.support_style.value == smsResinLike) {
+            // Tip diameter: use support line width (the minimum printable size) for a pin-head contact point.
+            this->support_tree_tip_diameter    = this->support_line_width;
+            // Branch diameter: keep branches thin — at most 2× the line width or the configured value, whichever is smaller.
+            this->support_tree_branch_diameter = std::min(this->support_tree_branch_diameter,
+                                                          this->support_line_width * 2);
+            // Ensure tip_diameter does not exceed branch_diameter.
+            this->support_tree_tip_diameter    = std::min(this->support_tree_tip_diameter,
+                                                          this->support_tree_branch_diameter);
+            // Use a high top-rate so the thin tips densely cover the overhang.
+            this->support_tree_top_rate        = 30.;
+            // Reduce roof/floor interface to 1 layer — resin supports need minimal flat interface.
+            if (this->support_roof_enable && this->support_roof_layers > 1)
+                this->support_roof_layers = 1;
+            if (this->support_floor_enable && this->support_floor_layers > 1)
+                this->support_floor_layers = 1;
+        }
     }
 
 /*********************************************************************/

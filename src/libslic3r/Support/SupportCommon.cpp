@@ -1745,7 +1745,8 @@ void generate_support_toolpaths(
                     filler->link_max_length = coord_t(scale_(filler->spacing * link_max_length_factor / density));
                     sheath  = true;
                     no_sort = true;
-                } else if (support_params.support_style == SupportMaterialStyle::smsTreeOrganic) {
+                } else if (support_params.support_style == SupportMaterialStyle::smsTreeOrganic ||
+                           support_params.support_style == SupportMaterialStyle::smsResinLike) {
                     // if the tree supports are too tall, use double wall to make it stronger
                     SupportParameters support_params2 = support_params;
                     if (support_layer.print_z > 100.0)

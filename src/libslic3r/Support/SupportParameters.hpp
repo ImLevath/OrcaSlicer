@@ -173,7 +173,7 @@ struct SupportParameters {
         support_style = object_config.support_style;
         if (support_style != smsDefault) {
             if ((support_style == smsSnug || support_style == smsGrid) && is_tree(object_config.support_type)) support_style = smsDefault;
-            if ((support_style == smsTreeSlim || support_style == smsTreeStrong || support_style == smsTreeHybrid || support_style == smsTreeOrganic) &&
+            if ((support_style == smsTreeSlim || support_style == smsTreeStrong || support_style == smsTreeHybrid || support_style == smsTreeOrganic || support_style == smsResinLike) &&
                 !is_tree(object_config.support_type))
                 support_style = smsDefault;
         }
