@@ -5848,7 +5848,7 @@ void PrintConfigDef::init_fff_params()
                      "a lot of material (default organic), while hybrid style will create similar structure to normal support "
                      "under large flat overhangs.\n"
                      "Resin-like style uses very thin branching pillars with tiny contact tips inspired by SLA/resin printer "
-                     "supports, minimising contact area for easy removal while reliably supporting overhangs.");
+                     "supports, minimizing contact area for easy removal while reliably supporting overhangs.");
     def->enum_keys_map = &ConfigOptionEnum<SupportMaterialStyle>::get_enum_values();
     def->enum_values.push_back("default");
     def->enum_values.push_back("grid");
