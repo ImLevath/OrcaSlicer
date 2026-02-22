@@ -160,7 +160,7 @@ enum SupportMaterialPattern {
 };
 
 enum SupportMaterialStyle {
-    smsDefault, smsGrid, smsSnug, smsTreeOrganic, smsTreeSlim, smsTreeStrong, smsTreeHybrid, smsResinLike,
+    smsDefault, smsGrid, smsSnug, smsTreeOrganic, smsTreeSlim, smsTreeStrong, smsTreeHybrid,
 };
 
 enum LongRectrationLevel
@@ -176,11 +176,11 @@ enum SupportMaterialInterfacePattern {
 
 // BBS
 enum SupportType {
-    stNormalAuto, stTreeAuto, stNormal, stTree
+    stNormalAuto, stTreeAuto, stNormal, stTree, stResinLikeAuto
 };
 inline bool is_tree(SupportType stype)
 {
-    return std::set<SupportType>{stTreeAuto, stTree}.count(stype) != 0;
+    return std::set<SupportType>{stTreeAuto, stTree, stResinLikeAuto}.count(stype) != 0;
 };
 inline bool is_tree_slim(SupportType type, SupportMaterialStyle style)
 {
@@ -188,7 +188,11 @@ inline bool is_tree_slim(SupportType type, SupportMaterialStyle style)
 };
 inline bool is_auto(SupportType stype)
 {
-    return std::set<SupportType>{stNormalAuto, stTreeAuto}.count(stype) != 0;
+    return std::set<SupportType>{stNormalAuto, stTreeAuto, stResinLikeAuto}.count(stype) != 0;
+};
+inline bool is_resin_like(SupportType stype)
+{
+    return stype == stResinLikeAuto;
 };
 
 enum SeamPosition {

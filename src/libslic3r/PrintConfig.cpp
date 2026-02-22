@@ -299,8 +299,7 @@ static t_config_enum_values s_keys_map_SupportMaterialStyle {
     { "organic",        smsTreeOrganic },
     { "tree_slim",      smsTreeSlim },
     { "tree_strong",    smsTreeStrong },
-    { "tree_hybrid",    smsTreeHybrid },
-    { "resin_like",     smsResinLike }
+    { "tree_hybrid",    smsTreeHybrid }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SupportMaterialStyle)
 
@@ -314,10 +313,11 @@ static t_config_enum_values s_keys_map_SupportMaterialInterfacePattern {
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SupportMaterialInterfacePattern)
 
 static t_config_enum_values s_keys_map_SupportType{
-    { "normal(auto)",   stNormalAuto },
-    { "tree(auto)", stTreeAuto },
-    { "normal(manual)", stNormal },
-    { "tree(manual)", stTree }
+    { "normal(auto)",       stNormalAuto },
+    { "tree(auto)",         stTreeAuto },
+    { "normal(manual)",     stNormal },
+    { "tree(manual)",       stTree },
+    { "resin_like(auto)",   stResinLikeAuto }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SupportType)
 
@@ -5554,17 +5554,21 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_type", coEnum);
     def->label = L("Type");
     def->category = L("Support");
-    def->tooltip = L("Normal (auto) and Tree (auto) are used to generate support automatically. "
-                     "If Normal (manual) or Tree (manual) is selected, only support enforcers are generated.");
+    def->tooltip = L("Normal (auto) and Tree (auto) generate support automatically. "
+                     "Normal (manual) or Tree (manual) generate support only on enforcers. "
+                     "Resin-like (auto) generates thin-pillar point-contact supports inspired by SLA printers, "
+                     "for easy removal.");
     def->enum_keys_map = &ConfigOptionEnum<SupportType>::get_enum_values();
     def->enum_values.push_back("normal(auto)");
     def->enum_values.push_back("tree(auto)");
     def->enum_values.push_back("normal(manual)");
     def->enum_values.push_back("tree(manual)");
+    def->enum_values.push_back("resin_like(auto)");
     def->enum_labels.push_back(L("Normal (auto)"));
     def->enum_labels.push_back(L("Tree (auto)"));
     def->enum_labels.push_back(L("Normal (manual)"));
     def->enum_labels.push_back(L("Tree (manual)"));
+    def->enum_labels.push_back(L("Resin-like (auto)"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<SupportType>(stNormalAuto));
 
@@ -5846,9 +5850,7 @@ void PrintConfigDef::init_fff_params()
                      "object scarring.\n"
                      "For tree support, slim and organic style will merge branches more aggressively and save "
                      "a lot of material (default organic), while hybrid style will create similar structure to normal support "
-                     "under large flat overhangs.\n"
-                     "Resin-like style uses very thin branching pillars with tiny contact tips inspired by SLA/resin printer "
-                     "supports, minimizing contact area for easy removal while reliably supporting overhangs.");
+                     "under large flat overhangs.");
     def->enum_keys_map = &ConfigOptionEnum<SupportMaterialStyle>::get_enum_values();
     def->enum_values.push_back("default");
     def->enum_values.push_back("grid");
@@ -5857,7 +5859,6 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("tree_slim");
     def->enum_values.push_back("tree_strong");
     def->enum_values.push_back("tree_hybrid");
-    def->enum_values.push_back("resin_like");
     def->enum_labels.push_back(L("Default (Grid/Organic)"));
     def->enum_labels.push_back(L("Grid"));
     def->enum_labels.push_back(L("Snug"));
@@ -5865,7 +5866,6 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Tree Slim"));
     def->enum_labels.push_back(L("Tree Strong"));
     def->enum_labels.push_back(L("Tree Hybrid"));
-    def->enum_labels.push_back(L("Resin-like"));
 
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<SupportMaterialStyle>(smsDefault));

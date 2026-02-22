@@ -472,7 +472,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         auto   support_type = config->opt_enum<SupportType>("support_type");
         auto   support_style = config->opt_enum<SupportMaterialStyle>("support_style");
         std::set<int> enum_set_normal = { smsDefault, smsGrid, smsSnug };
-        std::set<int> enum_set_tree   = { smsDefault, smsTreeSlim, smsTreeStrong, smsTreeHybrid, smsTreeOrganic, smsResinLike };
+        std::set<int> enum_set_tree   = { smsDefault, smsTreeSlim, smsTreeStrong, smsTreeHybrid, smsTreeOrganic };
         auto &           set             = is_tree(support_type) ? enum_set_tree : enum_set_normal;
         if (set.find(support_style) == set.end()) {
             DynamicPrintConfig new_conf = *config;
@@ -743,9 +743,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     //toggle_field("support_closing_radius", have_support_material && support_style == smsSnug);
 
     bool support_is_tree = config->opt_bool("enable_support") && is_tree(support_type);
-    bool support_is_normal_tree = support_is_tree && support_style != smsTreeOrganic &&
+    // Resin-like is always organic (auto-configured, no manual normal-tree settings needed)
+    bool support_is_normal_tree = support_is_tree && !is_resin_like(support_type) && support_style != smsTreeOrganic &&
     // Orca: use organic as default
-    support_style != smsDefault && support_style != smsResinLike;
+    support_style != smsDefault;
     bool support_is_organic = support_is_tree && !support_is_normal_tree;
     // settings shared by normal and organic trees
     for (auto el : {"tree_support_branch_angle", "tree_support_branch_distance", "tree_support_branch_diameter" })

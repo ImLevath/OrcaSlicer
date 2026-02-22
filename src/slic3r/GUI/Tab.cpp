@@ -2749,7 +2749,7 @@ void TabPrint::toggle_options()
     if (auto choice = dynamic_cast<Choice*>(field)) {
         auto def = print_config_def.get("support_style");
         std::vector<int> enum_set_normal = {smsDefault, smsGrid, smsSnug };
-        std::vector<int> enum_set_tree   = { smsDefault, smsTreeSlim, smsTreeStrong, smsTreeHybrid, smsTreeOrganic, smsResinLike };
+        std::vector<int> enum_set_tree   = { smsDefault, smsTreeSlim, smsTreeStrong, smsTreeHybrid, smsTreeOrganic };
         auto &           set             = is_tree(support_type) ? enum_set_tree : enum_set_normal;
         auto &           opt             = const_cast<ConfigOptionDef &>(field->m_opt);
         auto             cb              = dynamic_cast<ComboBox *>(choice->window);
@@ -2763,6 +2763,9 @@ void TabPrint::toggle_options()
             cb->Append(_(def->enum_labels[i]));
         }
         cb->SetValue(n);
+        // Hide the style selector for resin-like: its geometry is fully determined by the type.
+        if (auto line = m_active_page->get_line("support_style"))
+            line->toggle(!is_resin_like(support_type));
     }
 
     // BBL printers do not support cone wipe tower
