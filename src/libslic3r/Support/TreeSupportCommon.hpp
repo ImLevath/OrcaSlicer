@@ -110,6 +110,14 @@ struct TreeSupportMeshGroupSettings {
             this->support_floor_enable         = false;
             // No wall around thin pillars — single-line extrusion columns like resin support stems.
             this->support_wall_count           = 0;
+            // Perfectly vertical columns: clamp branch angles to 1° so pillars go straight up/down
+            // with no horizontal bending or twisting (tan(1°) × layer_height ≈ 0.003 mm — negligible).
+            this->support_tree_angle           = 1.0 * M_PI / 180.;
+            this->support_tree_angle_slow      = 1.0 * M_PI / 180.;
+            // Uniform shaft diameter: no widening toward the bed — taper is only at the contact tip.
+            this->support_tree_branch_diameter_angle = 0.;
+            // No extra-wide base flare at the buildplate — keep same diameter as pillar shaft.
+            this->support_tree_bp_diameter     = this->support_tree_branch_diameter;
         }
     }
 
