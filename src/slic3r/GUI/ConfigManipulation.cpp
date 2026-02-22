@@ -743,7 +743,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     //toggle_field("support_closing_radius", have_support_material && support_style == smsSnug);
 
     bool support_is_tree = config->opt_bool("enable_support") && is_tree(support_type);
-    bool support_is_normal_tree = support_is_tree && support_style != smsTreeOrganic &&
+    // Resin-like is always organic (auto-configured, no manual normal-tree settings needed)
+    bool support_is_normal_tree = support_is_tree && !is_resin_like(support_type) && support_style != smsTreeOrganic &&
     // Orca: use organic as default
     support_style != smsDefault;
     bool support_is_organic = support_is_tree && !support_is_normal_tree;

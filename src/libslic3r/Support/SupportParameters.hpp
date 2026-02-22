@@ -177,7 +177,10 @@ struct SupportParameters {
                 !is_tree(object_config.support_type))
                 support_style = smsDefault;
         }
-        if (support_style == smsDefault) {
+        // Resin-like type always uses organic generation; ignore any user-set style.
+        if (is_resin_like(object_config.support_type.value))
+            support_style = smsTreeOrganic;
+        else if (support_style == smsDefault) {
             if (is_tree(object_config.support_type)) {
                 // Orca: use organic as default
                 support_style = smsTreeOrganic;

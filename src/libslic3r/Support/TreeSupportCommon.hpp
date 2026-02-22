@@ -91,6 +91,25 @@ struct TreeSupportMeshGroupSettings {
         this->support_tree_top_rate       = config.tree_support_top_rate.value; // percent
     //    this->support_tree_tip_diameter = this->support_line_width;
         this->support_tree_tip_diameter = std::clamp(scaled<coord_t>(config.tree_support_tip_diameter.value), (coord_t)0, this->support_tree_branch_diameter);
+
+        // Resin-like type: apply SLA-inspired thin-pillar, pin-head parameters automatically.
+        if (is_resin_like(config.support_type.value)) {
+            // Tip diameter: use support line width for a single-extrusion pin-head contact point.
+            this->support_tree_tip_diameter    = this->support_line_width;
+            // Branch diameter: thin pillars — at most 2× line width or the configured value, whichever is smaller.
+            this->support_tree_branch_diameter = std::min(this->support_tree_branch_diameter,
+                                                          this->support_line_width * 2);
+            // Ensure tip_diameter does not exceed branch_diameter.
+            this->support_tree_tip_diameter    = std::min(this->support_tree_tip_diameter,
+                                                          this->support_tree_branch_diameter);
+            // High top-rate so thin tips densely cover the overhang area.
+            this->support_tree_top_rate        = 30.;
+            // Minimal flat interface (1 layer) — easier removal, like resin supports.
+            if (this->support_roof_enable && this->support_roof_layers > 1)
+                this->support_roof_layers = 1;
+            if (this->support_floor_enable && this->support_floor_layers > 1)
+                this->support_floor_layers = 1;
+        }
     }
 
 /*********************************************************************/

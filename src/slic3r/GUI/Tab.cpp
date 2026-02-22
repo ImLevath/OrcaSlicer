@@ -2763,6 +2763,9 @@ void TabPrint::toggle_options()
             cb->Append(_(def->enum_labels[i]));
         }
         cb->SetValue(n);
+        // Hide the style selector for resin-like: its geometry is fully determined by the type.
+        if (auto line = m_active_page->get_line("support_style"))
+            line->toggle(!is_resin_like(support_type));
     }
 
     // BBL printers do not support cone wipe tower
