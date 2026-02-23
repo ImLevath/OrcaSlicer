@@ -1,9 +1,6 @@
 name: Build and Release
 
 on:
-  push:
-    branches:
-      - 'copilot/**'
   workflow_dispatch:
     inputs:
       create-release:
