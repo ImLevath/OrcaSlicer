@@ -92,7 +92,7 @@ struct TreeSupportMeshGroupSettings {
     //    this->support_tree_tip_diameter = this->support_line_width;
         this->support_tree_tip_diameter = std::clamp(scaled<coord_t>(config.tree_support_tip_diameter.value), (coord_t)0, this->support_tree_branch_diameter);
 
-        // Resin-like type: apply SLA-inspired thin-pillar, pin-head parameters automatically.
+        // Resin-like type: apply parameters matching resin slicer support style (Chitubox/Elegoo Satellite).
         if (is_resin_like(config.support_type.value)) {
             // Tip diameter: use support line width for a single-extrusion pin-head contact point.
             this->support_tree_tip_diameter    = this->support_line_width;
@@ -102,13 +102,22 @@ struct TreeSupportMeshGroupSettings {
             // Ensure tip_diameter does not exceed branch_diameter.
             this->support_tree_tip_diameter    = std::min(this->support_tree_tip_diameter,
                                                           this->support_tree_branch_diameter);
-            // High top-rate so thin tips densely cover the overhang area.
-            this->support_tree_top_rate        = 30.;
-            // Minimal flat interface (1 layer) — easier removal, like resin supports.
-            if (this->support_roof_enable && this->support_roof_layers > 1)
-                this->support_roof_layers = 1;
-            if (this->support_floor_enable && this->support_floor_layers > 1)
-                this->support_floor_layers = 1;
+            // High contact density matching resin slicer defaults (Chitubox/Elegoo ~50%).
+            this->support_tree_top_rate        = 50.;
+            // No flat interface layers: resin supports contact the model via a thin tip, not a raft.
+            // In Chitubox/Elegoo the contact tip itself is the interface — no separate roof/floor slabs.
+            this->support_roof_enable          = false;
+            this->support_floor_enable         = false;
+            // No wall around thin pillars — single-line extrusion columns like resin support stems.
+            this->support_wall_count           = 0;
+            // Perfectly vertical columns: clamp branch angles to 1° so pillars go straight up/down
+            // with no horizontal bending or twisting (tan(1°) × layer_height ≈ 0.003 mm — negligible).
+            this->support_tree_angle           = 1.0 * M_PI / 180.;
+            this->support_tree_angle_slow      = 1.0 * M_PI / 180.;
+            // Uniform shaft diameter: no widening toward the bed — taper is only at the contact tip.
+            this->support_tree_branch_diameter_angle = 0.;
+            // No extra-wide base flare at the buildplate — keep same diameter as pillar shaft.
+            this->support_tree_bp_diameter     = this->support_tree_branch_diameter;
         }
     }
 
